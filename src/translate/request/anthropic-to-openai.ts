@@ -3,7 +3,8 @@ import { hashSystemPrompt } from '../../cache';
 function translateImageBlock(
   part: any,
 ): any {
-  const src = part?.source;
+  const src =
+    part?.source;
 
   if (!src) {
     return null;
@@ -34,44 +35,37 @@ function translateImageBlock(
 function extractReasoningEffort(
   body: any,
 ): string | null {
-  /*
-   * OpenCode uses reasoningEffort / reasoning_effort.
-   *
-   * Claude Desktop's third-party gateway versions may express the
-   * selected effort in different forms, so accept all common forms.
-   */
-
   const direct =
     body?.reasoning_effort ??
     body?.reasoningEffort;
 
   if (
-    typeof direct === 'string' &&
+    typeof direct ===
+      'string' &&
     direct.trim()
   ) {
-    return direct.trim().toLowerCase();
+    return direct
+      .trim()
+      .toLowerCase();
   }
 
   /*
-   * Some Anthropic-compatible clients expose the selected thinking
-   * budget rather than a named effort.
+   * Claude-compatible thinking input.
    */
   const thinking =
     body?.thinking;
 
   if (
-    thinking &&
-    thinking.type === 'enabled'
+    thinking?.type ===
+    'enabled'
   ) {
     const budget =
       thinking.budget_tokens;
 
     if (
-      typeof budget === 'number'
+      typeof budget ===
+      'number'
     ) {
-      /*
-       * Map Anthropic-style budgets to the OpenCode effort scale.
-       */
       if (budget <= 4096) {
         return 'low';
       }
@@ -97,17 +91,16 @@ function extractReasoningEffort(
   return null;
 }
 
-function normalizeEffort(
+function normalizeReasoningEffort(
   effort: string | null,
 ): string | null {
   if (!effort) {
     return null;
   }
 
-  const value =
-    effort.toLowerCase();
-
-  switch (value) {
+  switch (
+    effort.toLowerCase()
+  ) {
     case 'low':
       return 'low';
 
@@ -128,7 +121,7 @@ function normalizeEffort(
       return 'max';
 
     default:
-      return value;
+      return effort.toLowerCase();
   }
 }
 
@@ -226,12 +219,16 @@ export function formatAnthropicToOpenAI(
                     'tool_use'
                   ) {
                     toolCalls.push({
-                      id: part.id,
+                      id:
+                        part.id,
+
                       type:
                         'function',
+
                       function: {
                         name:
                           part.name,
+
                         arguments:
                           JSON.stringify(
                             part.input,
@@ -392,7 +389,8 @@ export function formatAnthropicToOpenAI(
     Array.isArray(system)
       ? system.map(
           (item: any) => ({
-            role: 'system',
+            role:
+              'system',
             content:
               item.text,
           }),
@@ -400,7 +398,8 @@ export function formatAnthropicToOpenAI(
       : system
         ? [
             {
-              role: 'system',
+              role:
+                'system',
               content:
                 system,
             },
@@ -435,7 +434,8 @@ export function formatAnthropicToOpenAI(
   if (
     top_p !== undefined
   ) {
-    data.top_p = top_p;
+    data.top_p =
+      top_p;
   }
 
   if (
@@ -481,28 +481,28 @@ export function formatAnthropicToOpenAI(
   }
 
   /*
-   * ============================================================
-   * REASONING
-   * ============================================================
+   * Reasoning
    *
-   * Claude Desktop selects:
+   * Claude/Desktop:
    *
-   * Low
-   * Medium
-   * High
-   * Extra High
-   * Max
+   *   Low
+   *   Medium
+   *   High
+   *   Extra High
+   *   Max
    *
-   * We normalize those to OpenCode:
+   * OpenCode:
    *
-   * low
-   * medium
-   * high
-   * xhigh
-   * max
+   *   low
+   *   medium
+   *   high
+   *   xhigh
+   *   max
+   *
+   * OpenCode's actual variant support is model-specific.
    */
   const reasoningEffort =
-    normalizeEffort(
+    normalizeReasoningEffort(
       extractReasoningEffort(
         body,
       ),
@@ -514,29 +514,15 @@ export function formatAnthropicToOpenAI(
     data.reasoning_effort =
       reasoningEffort;
 
-    /*
-     * Keep OpenCode's newer camelCase form available to providers
-     * that use it.
-     */
     data.reasoningEffort =
       reasoningEffort;
-  }
 
-  /*
-   * Some OpenCode-compatible providers inspect this field.
-   */
-  if (
-    reasoningEffort
-  ) {
     data.reasoning = {
       effort:
         reasoningEffort,
     };
   }
 
-  /*
-   * Prefix cache affinity.
-   */
   const cacheKey =
     hashSystemPrompt(
       system,
