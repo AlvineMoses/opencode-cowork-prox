@@ -59,7 +59,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
   /*
    * Go
    */
-  'claude-glm-5-2': {
+  'anthropic/claude-glm-5-2': {
     upstreamModel: 'glm-5.2',
     protocol: 'openai',
     source: 'go',
@@ -67,7 +67,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-glm-5-1': {
+  'anthropic/claude-glm-5-1': {
     upstreamModel: 'glm-5.1',
     protocol: 'openai',
     source: 'go',
@@ -75,7 +75,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-grok-4-5': {
+  'anthropic/claude-grok-4-5': {
     upstreamModel: 'grok-4.5',
     protocol: 'openai',
     source: 'go',
@@ -83,7 +83,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-kimi-k3': {
+  'anthropic/claude-kimi-k3': {
     upstreamModel: 'kimi-k3',
     protocol: 'openai',
     source: 'go',
@@ -91,7 +91,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-kimi-k2-7-code': {
+  'anthropic/claude-kimi-k2-7-code': {
     upstreamModel: 'kimi-k2.7-code',
     protocol: 'openai',
     source: 'go',
@@ -99,7 +99,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-kimi-k2-6': {
+  'anthropic/claude-kimi-k2-6': {
     upstreamModel: 'kimi-k2.6',
     protocol: 'openai',
     source: 'go',
@@ -107,7 +107,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-deepseek-v4-pro': {
+  'anthropic/claude-deepseek-v4-pro': {
     upstreamModel: 'deepseek-v4-pro',
     protocol: 'openai',
     source: 'go',
@@ -115,7 +115,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-deepseek-v4-flash': {
+  'anthropic/claude-deepseek-v4-flash': {
     upstreamModel: 'deepseek-v4-flash',
     protocol: 'openai',
     source: 'go',
@@ -123,7 +123,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-mimo-v2-5-pro': {
+  'anthropic/claude-mimo-v2-5-pro': {
     upstreamModel: 'mimo-v2.5-pro',
     protocol: 'openai',
     source: 'go',
@@ -131,7 +131,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-mimo-v2-5': {
+  'anthropic/claude-mimo-v2-5': {
     upstreamModel: 'mimo-v2.5',
     protocol: 'openai',
     source: 'go',
@@ -139,7 +139,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-minimax-m3': {
+  'anthropic/claude-minimax-m3': {
     upstreamModel: 'minimax-m3',
     protocol: 'openai',
     source: 'go',
@@ -147,7 +147,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-minimax-m2-7': {
+  'anthropic/claude-minimax-m2-7': {
     upstreamModel: 'minimax-m2.7',
     protocol: 'openai',
     source: 'go',
@@ -155,7 +155,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-minimax-m2-5': {
+  'anthropic/claude-minimax-m2-5': {
     upstreamModel: 'minimax-m2.5',
     protocol: 'openai',
     source: 'go',
@@ -163,7 +163,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-qwen3-8-max': {
+  'anthropic/claude-qwen3-8-max': {
     upstreamModel: 'qwen3.8-max',
     protocol: 'anthropic',
     source: 'go',
@@ -171,7 +171,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-qwen3-7-max': {
+  'anthropic/claude-qwen3-7-max': {
     upstreamModel: 'qwen3.7-max',
     protocol: 'anthropic',
     source: 'go',
@@ -179,7 +179,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-qwen3-7-plus': {
+  'anthropic/claude-qwen3-7-plus': {
     upstreamModel: 'qwen3.7-plus',
     protocol: 'anthropic',
     source: 'go',
@@ -187,7 +187,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-qwen3-6-plus': {
+  'anthropic/claude-qwen3-6-plus': {
     upstreamModel: 'qwen3.6-plus',
     protocol: 'anthropic',
     source: 'go',
@@ -195,7 +195,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-hy3': {
+  'anthropic/claude-hy3': {
     upstreamModel: 'hy3',
     protocol: 'openai',
     source: 'go',
@@ -206,7 +206,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
   /*
    * Zen
    */
-  'claude-glm-5': {
+  'anthropic/claude-glm-5': {
     upstreamModel: 'glm-5',
     protocol: 'openai',
     source: 'zen',
@@ -214,7 +214,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-kimi-k2-5': {
+  'anthropic/claude-kimi-k2-5': {
     upstreamModel: 'kimi-k2.5',
     protocol: 'openai',
     source: 'zen',
@@ -222,7 +222,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-grok-build-0-1': {
+  'anthropic/claude-grok-build-0-1': {
     upstreamModel: 'grok-build-0.1',
     protocol: 'openai',
     source: 'zen',
@@ -230,7 +230,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'claude-big-pickle': {
+  'anthropic/claude-big-pickle': {
     upstreamModel: 'big-pickle',
     protocol: 'openai',
     source: 'zen',
@@ -238,7 +238,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high'],
   },
 
-  'claude-mimo-v2-5-free': {
+  'anthropic/claude-mimo-v2-5-free': {
     upstreamModel: 'mimo-v2.5-free',
     protocol: 'openai',
     source: 'zen',
@@ -246,7 +246,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     reasoningEfforts: ['low', 'medium', 'high'],
   },
 
-  'claude-deepseek-v4-flash-free': {
+  'anthropic/claude-deepseek-v4-flash-free': {
     upstreamModel: 'deepseek-v4-flash-free',
     protocol: 'openai',
     source: 'zen',
