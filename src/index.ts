@@ -48,7 +48,7 @@ type RouteConfig = {
  *
  * IMPORTANT:
  * Claude Desktop validates third-party gateway model names.
- * These therefore use the accepted anthropic/claude-* shape.
+ * These therefore use the accepted claude-* shape.
  *
  * The actual OpenCode model is in upstreamModel.
  */
@@ -56,7 +56,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
   /*
    * Go / OpenAI Chat Completions
    */
-  'anthropic/claude-grok-4-5': {
+  'claude-grok-4-5': {
     upstreamModel: 'grok-4.5',
     protocol: 'openai',
     reasoningEfforts: [
@@ -68,7 +68,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-glm-5-2': {
+  'claude-glm-5-2': {
     upstreamModel: 'glm-5.2',
     protocol: 'openai',
     reasoningEfforts: [
@@ -80,7 +80,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-glm-5-1': {
+  'claude-glm-5-1': {
     upstreamModel: 'glm-5.1',
     protocol: 'openai',
     reasoningEfforts: [
@@ -92,7 +92,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-kimi-k3': {
+  'claude-kimi-k3': {
     upstreamModel: 'kimi-k3',
     protocol: 'openai',
     reasoningEfforts: [
@@ -104,7 +104,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-kimi-k2-7-code': {
+  'claude-kimi-k2-7-code': {
     upstreamModel: 'kimi-k2.7-code',
     protocol: 'openai',
     reasoningEfforts: [
@@ -116,7 +116,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-kimi-k2-6': {
+  'claude-kimi-k2-6': {
     upstreamModel: 'kimi-k2.6',
     protocol: 'openai',
     reasoningEfforts: [
@@ -128,7 +128,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-deepseek-v4-pro': {
+  'claude-deepseek-v4-pro': {
     upstreamModel: 'deepseek-v4-pro',
     protocol: 'openai',
     reasoningEfforts: [
@@ -140,7 +140,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-deepseek-v4-flash': {
+  'claude-deepseek-v4-flash': {
     upstreamModel: 'deepseek-v4-flash',
     protocol: 'openai',
     reasoningEfforts: [
@@ -152,7 +152,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-mimo-v2-5-pro': {
+  'claude-mimo-v2-5-pro': {
     upstreamModel: 'mimo-v2.5-pro',
     protocol: 'openai',
     reasoningEfforts: [
@@ -164,7 +164,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-mimo-v2-5': {
+  'claude-mimo-v2-5': {
     upstreamModel: 'mimo-v2.5',
     protocol: 'openai',
     reasoningEfforts: [
@@ -181,7 +181,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
    *
    * OpenCode officially exposes these Go models through /messages.
    */
-  'anthropic/claude-minimax-m3': {
+  'claude-minimax-m3': {
     upstreamModel: 'minimax-m3',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -193,7 +193,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-minimax-m2-7': {
+  'claude-minimax-m2-7': {
     upstreamModel: 'minimax-m2.7',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -205,7 +205,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-qwen3-8-max': {
+  'claude-qwen3-8-max': {
     upstreamModel: 'qwen3.8-max',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -217,7 +217,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-qwen3-7-max': {
+  'claude-qwen3-7-max': {
     upstreamModel: 'qwen3.7-max',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -229,7 +229,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-qwen3-7-plus': {
+  'claude-qwen3-7-plus': {
     upstreamModel: 'qwen3.7-plus',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -241,7 +241,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
     ],
   },
 
-  'anthropic/claude-qwen3-6-plus': {
+  'claude-qwen3-6-plus': {
     upstreamModel: 'qwen3.6-plus',
     protocol: 'anthropic',
     reasoningEfforts: [
@@ -256,7 +256,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
   /*
    * Hy3 is Chat Completions.
    */
-  'anthropic/claude-hy3': {
+  'claude-hy3': {
     upstreamModel: 'hy3',
     protocol: 'openai',
     reasoningEfforts: [
@@ -274,7 +274,7 @@ const MODEL_ROUTES: Record<string, ModelRoute> = {
    *
    * Once enabled:
    *
-   * anthropic/claude-gpt-5-6-luna -> gpt-5.6-luna -> /responses
+   * claude-gpt-5-6-luna -> gpt-5.6-luna -> /responses
    */
 };
 
