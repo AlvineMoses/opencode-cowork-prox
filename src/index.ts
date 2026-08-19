@@ -49,6 +49,13 @@ type ModelInfo = {
  * The catalog itself is fetched dynamically from /models, but these
  * protocol mappings tell the Worker which endpoint to use.
  */
+const MODEL_ALIASES: Record<string, string> = {
+  // Claude Desktop's Gateway performs a credential probe using
+  // this built-in Claude model before loading the configured
+  // provider's actual model catalog.
+  'sonnet-5.1': 'glm-5.2',
+  'sonnet5.1': 'glm-5.2',
+};
 const MODEL_PROTOCOLS: Record<string, UpstreamProtocol> = {
   // OpenAI-compatible Chat Completions
   'grok-4.5': 'openai',
@@ -221,11 +228,13 @@ function normalizeModelId(model: unknown): string | null {
     return null;
   }
 
-  if (model.startsWith('opencode-go/')) {
-    return model.slice('opencode-go/'.length);
+  let normalized = model;
+
+  if (normalized.startsWith('opencode-go/')) {
+    normalized = normalized.slice('opencode-go/'.length);
   }
 
-  return model;
+  return MODEL_ALIASES[normalized] || normalized;
 }
 
 function getModelProtocol(
