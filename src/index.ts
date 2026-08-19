@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-
 import {
   extractApiKey,
   validateApiKey,
@@ -31,183 +30,262 @@ type UpstreamProtocol =
   | 'anthropic'
   | 'responses';
 
+type UpstreamSource = 'go' | 'zen';
+
 type RouteConfig = {
   path: string;
   upstream: string;
   modelOverride: string | null;
 };
 
-type ModelInfo = {
-  id: string;
-  object?: string;
-  created?: number;
-  owned_by?: string;
-  [key: string]: unknown;
-};
-
 type ModelRoute = {
   upstreamModel: string;
   protocol: UpstreamProtocol;
+  source: UpstreamSource;
+  familyTier?: 'sonnet' | 'opus' | 'haiku';
+  reasoningEfforts?: string[];
 };
 
 /*
- * ============================================================================
- * MODEL ROUTING
- * ============================================================================
+ * Claude Desktop requires Anthropic-looking model IDs.
  *
- * Claude Desktop expects models exposed by a gateway to look like Anthropic
- * models. We therefore expose Anthropic-shaped IDs while internally routing
- * them to the actual OpenCode model.
+ * The left side is what Claude Desktop sees.
+ * The right side is what OpenCode receives.
  *
- * Example:
- *
- *   Claude Desktop
- *        |
- *        | model = claude-sonnet-4-5
- *        v
- *   Our Worker
- *        |
- *        | model = glm-5.2
- *        v
- *   OpenCode Go
- *
- * This is the critical compatibility layer.
+ * Keep these IDs stable; they are the contract between Claude Desktop
+ * and this Worker.
  */
 const MODEL_ROUTES: Record<string, ModelRoute> = {
   /*
-   * Claude Desktop's gateway credential probe.
-   *
-   * Claude probes this model even though the actual inference is performed
-   * by OpenCode's glm-5.2 model.
+   * Go
    */
-  'claude-sonnet-4-5': {
+  'claude-opencode-glm-5-2': {
     upstreamModel: 'glm-5.2',
     protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  /*
-   * OpenCode models exposed through Anthropic-looking IDs.
-   *
-   * These IDs are intentionally prefixed with:
-   *
-   *   anthropic/claude-opencode-
-   *
-   * because Claude Desktop validates the model name before allowing it.
-   */
-
-  'anthropic/claude-opencode-minimax-m3': {
-    upstreamModel: 'minimax-m3',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-minimax-m2-7': {
-    upstreamModel: 'minimax-m2.7',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-minimax-m2-5': {
-    upstreamModel: 'minimax-m2.5',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-kimi-k3': {
-    upstreamModel: 'kimi-k3',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-kimi-k2-7-code': {
-    upstreamModel: 'kimi-k2.7-code',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-kimi-k2-6': {
-    upstreamModel: 'kimi-k2.6',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-glm-5-2': {
-    upstreamModel: 'glm-5.2',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-glm-5-1': {
+  'claude-opencode-glm-5-1': {
     upstreamModel: 'glm-5.1',
     protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
-  'anthropic/claude-opencode-deepseek-v4-pro': {
-    upstreamModel: 'deepseek-v4-pro',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-deepseek-v4-flash': {
-    upstreamModel: 'deepseek-v4-flash',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-qwen3-7-max': {
-    upstreamModel: 'qwen3.7-max',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-qwen3-8-max': {
-    upstreamModel: 'qwen3.8-max',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-qwen3-7-plus': {
-    upstreamModel: 'qwen3.7-plus',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-qwen3-6-plus': {
-    upstreamModel: 'qwen3.6-plus',
-    protocol: 'anthropic',
-  },
-
-  'anthropic/claude-opencode-mimo-v2-5-pro': {
-    upstreamModel: 'mimo-v2.5-pro',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-mimo-v2-5': {
-    upstreamModel: 'mimo-v2.5',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-hy3': {
-    upstreamModel: 'hy3',
-    protocol: 'openai',
-  },
-
-  'anthropic/claude-opencode-grok-4-5': {
+  'claude-opencode-grok-4-5': {
     upstreamModel: 'grok-4.5',
     protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-kimi-k3': {
+    upstreamModel: 'kimi-k3',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-kimi-k2-7-code': {
+    upstreamModel: 'kimi-k2.7-code',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-kimi-k2-6': {
+    upstreamModel: 'kimi-k2.6',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-deepseek-v4-pro': {
+    upstreamModel: 'deepseek-v4-pro',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-deepseek-v4-flash': {
+    upstreamModel: 'deepseek-v4-flash',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-mimo-v2-5-pro': {
+    upstreamModel: 'mimo-v2.5-pro',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-mimo-v2-5': {
+    upstreamModel: 'mimo-v2.5',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-minimax-m3': {
+    upstreamModel: 'minimax-m3',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-minimax-m2-7': {
+    upstreamModel: 'minimax-m2.7',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-minimax-m2-5': {
+    upstreamModel: 'minimax-m2.5',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-qwen3-8-max': {
+    upstreamModel: 'qwen3.8-max',
+    protocol: 'anthropic',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-qwen3-7-max': {
+    upstreamModel: 'qwen3.7-max',
+    protocol: 'anthropic',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-qwen3-7-plus': {
+    upstreamModel: 'qwen3.7-plus',
+    protocol: 'anthropic',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-qwen3-6-plus': {
+    upstreamModel: 'qwen3.6-plus',
+    protocol: 'anthropic',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-hy3': {
+    upstreamModel: 'hy3',
+    protocol: 'openai',
+    source: 'go',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
   },
 
   /*
-   * GPT-5.6 Luna intentionally isn't exposed yet.
+   * Zen
+   */
+  'claude-opencode-glm-5': {
+    upstreamModel: 'glm-5',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-kimi-k2-5': {
+    upstreamModel: 'kimi-k2.5',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-grok-build-0-1': {
+    upstreamModel: 'grok-build-0.1',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+  },
+
+  'claude-opencode-big-pickle': {
+    upstreamModel: 'big-pickle',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high'],
+  },
+
+  'claude-opencode-mimo-v2-5-free': {
+    upstreamModel: 'mimo-v2.5-free',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high'],
+  },
+
+  'claude-opencode-deepseek-v4-flash-free': {
+    upstreamModel: 'deepseek-v4-flash-free',
+    protocol: 'openai',
+    source: 'zen',
+    familyTier: 'haiku',
+    reasoningEfforts: ['low', 'medium', 'high'],
+  },
+
+  /*
+   * These Zen models already speak Anthropic Messages.
+   */
+  'claude-opencode-claude-sonnet-4-5': {
+    upstreamModel: 'claude-sonnet-4-5',
+    protocol: 'anthropic',
+    source: 'zen',
+    familyTier: 'sonnet',
+    reasoningEfforts: ['high', 'max'],
+  },
+
+  'claude-opencode-claude-haiku-4-5': {
+    upstreamModel: 'claude-haiku-4-5',
+    protocol: 'anthropic',
+    source: 'zen',
+    familyTier: 'haiku',
+    reasoningEfforts: ['high', 'max'],
+  },
+
+  /*
+   * GPT Responses models are intentionally NOT added here yet.
    *
-   * It uses OpenAI Responses rather than Chat Completions, and this Worker
-   * does not currently contain the Responses <-> Anthropic adapter.
-   *
-   * DO NOT advertise it to Claude until that adapter exists.
+   * They need a Responses <-> Anthropic adapter before they should
+   * appear in Claude's picker.
    */
 };
-
-/*
- * ============================================================================
- * PATH ROUTING
- * ============================================================================
- */
 
 function stripPrefix(
   path: string,
   prefix: string,
 ): string | null {
-  if (path === prefix) {
-    return '/';
-  }
+  if (path === prefix) return '/';
 
   if (path.startsWith(`${prefix}/`)) {
     return path.slice(prefix.length);
@@ -232,9 +310,7 @@ function extractModelSegment(
     !API_START_PATHS.has(segments[0])
   ) {
     return {
-      path:
-        '/' +
-        segments.slice(1).join('/'),
+      path: '/' + segments.slice(1).join('/'),
       model: segments[0],
     };
   }
@@ -283,23 +359,20 @@ function routeConfig(
     };
   }
 
-  const {
-    path: remaining,
-    model,
-  } = extractModelSegment(path);
-
   return {
-    path: remaining,
+    path,
     upstream: DEFAULT_UPSTREAM,
-    modelOverride: model,
+    modelOverride: null,
   };
 }
 
-/*
- * ============================================================================
- * UPSTREAM HELPERS
- * ============================================================================
- */
+function getUpstreamBase(
+  source: UpstreamSource,
+): string {
+  return source === 'zen'
+    ? ZEN_UPSTREAM
+    : GO_UPSTREAM;
+}
 
 function getUpstream(
   request: Request,
@@ -366,72 +439,26 @@ function openAIHeaders(
   return {
     'Content-Type':
       'application/json',
-
     Authorization:
       `Bearer ${key}`,
   };
 }
 
-/*
- * ============================================================================
- * MODEL HELPERS
- * ============================================================================
- */
-
-function normalizeModelId(
-  model: unknown,
-): string | null {
-  if (typeof model !== 'string') {
-    return null;
-  }
-
-  const value = model.trim();
-
-  if (!value) {
-    return null;
-  }
-
-  return value;
-}
-
 function getModelRoute(
-  model: string | null,
+  model: unknown,
 ): ModelRoute | null {
-  if (!model) {
+  if (
+    typeof model !== 'string'
+  ) {
     return null;
   }
+
+  const id =
+    model.trim();
 
   return (
-    MODEL_ROUTES[model] ||
+    MODEL_ROUTES[id] ||
     null
-  );
-}
-
-/*
- * ============================================================================
- * REQUEST HELPERS
- * ============================================================================
- */
-
-function hasImages(
-  body: any,
-): boolean {
-  const messages =
-    body?.messages;
-
-  if (!Array.isArray(messages)) {
-    return false;
-  }
-
-  return messages.some(
-    (msg: any) =>
-      Array.isArray(
-        msg.content,
-      ) &&
-      msg.content.some(
-        (part: any) =>
-          part?.type === 'image',
-      ),
   );
 }
 
@@ -473,56 +500,21 @@ function upstreamErrorResponse(
 
 /*
  * ============================================================================
- * ANTHROPIC MESSAGES HANDLER
+ * ANTHROPIC -> OPENAI request routing
  * ============================================================================
- *
- * Claude Desktop/Cowork speaks Anthropic Messages.
- *
- * Depending on the selected model, we translate that request into the
- * appropriate OpenCode protocol.
  */
 
 async function handleAnthropicMessages(
   request: Request,
   route: RouteConfig,
-  upstream: string,
   key: string,
 ): Promise<Response> {
-  const req =
+  const body =
     await request.json();
 
-  /*
-   * Preserve the model Claude actually requested.
-   *
-   * This is important because the response sent back to Claude should
-   * continue identifying the Claude-facing model rather than exposing
-   * the internal OpenCode model.
-   */
   const requestedModel =
     route.modelOverride ||
-    normalizeModelId(
-      req.model,
-    );
-
-  if (!requestedModel) {
-    return new Response(
-      JSON.stringify({
-        type: 'error',
-        error: {
-          type: 'ModelError',
-          message:
-            'No model was specified.',
-        },
-      }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-      },
-    );
-  }
+    body?.model;
 
   const modelRoute =
     getModelRoute(
@@ -536,9 +528,7 @@ async function handleAnthropicMessages(
         error: {
           type: 'ModelError',
           message:
-            `Model ${requestedModel} is not supported`,
-          model:
-            requestedModel,
+            `Model ${requestedModel} is not configured in the gateway.`,
         },
       }),
       {
@@ -552,123 +542,26 @@ async function handleAnthropicMessages(
   }
 
   /*
-   * THIS IS THE KEY FIX.
-   *
-   * Claude sends:
-   *
-   *   claude-sonnet-4-5
-   *
-   * We send OpenCode:
-   *
-   *   glm-5.2
-   *
-   * The Claude-facing model ID is retained separately as requestedModel.
+   * Send the REAL OpenCode model upstream.
    */
-  req.model =
+  body.model =
     modelRoute.upstreamModel;
 
-  const protocol =
-    modelRoute.protocol;
-
-  const requestHasImages =
-    hasImages(req);
-
   /*
    * --------------------------------------------------------------------------
-   * OPENAI CHAT COMPLETIONS
+   * Models that already speak Anthropic Messages
    * --------------------------------------------------------------------------
    */
 
   if (
-    protocol === 'openai'
+    modelRoute.protocol ===
+    'anthropic'
   ) {
-    const openaiReq =
-      formatAnthropicToOpenAI(
-        req,
+    const upstream =
+      getUpstreamBase(
+        modelRoute.source,
       );
 
-    const res =
-      await fetch(
-        `${upstream}/chat/completions`,
-        {
-          method: 'POST',
-          headers:
-            openAIHeaders(key),
-          body:
-            JSON.stringify(
-              openaiReq,
-            ),
-        },
-      );
-
-    if (!res.ok) {
-      return upstreamErrorResponse(
-        res,
-        await res.text(),
-      );
-    }
-
-    /*
-     * Always return the Claude-facing model ID.
-     */
-    const responseModel =
-      requestedModel;
-
-    if (
-      openaiReq.stream
-    ) {
-      return new Response(
-        streamOpenAIToAnthropic(
-          res.body as ReadableStream,
-          responseModel,
-        ),
-        {
-          headers: {
-            'Content-Type':
-              'text/event-stream',
-
-            'Cache-Control':
-              'no-cache',
-
-            Connection:
-              'keep-alive',
-          },
-        },
-      );
-    }
-
-    const data: any =
-      await res.json();
-
-    return new Response(
-      JSON.stringify(
-        toAnthropicResponse(
-          data,
-          responseModel,
-        ),
-      ),
-      {
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-      },
-    );
-  }
-
-  /*
-   * --------------------------------------------------------------------------
-   * ANTHROPIC MESSAGES
-   * --------------------------------------------------------------------------
-   *
-   * These models already speak Anthropic Messages.
-   *
-   * No conversion is necessary.
-   */
-
-  if (
-    protocol === 'anthropic'
-  ) {
     const res =
       await fetch(
         `${upstream}/messages`,
@@ -680,7 +573,7 @@ async function handleAnthropicMessages(
               key,
             ),
           body:
-            JSON.stringify(req),
+            JSON.stringify(body),
         },
       );
 
@@ -696,7 +589,6 @@ async function handleAnthropicMessages(
       {
         status:
           res.status,
-
         headers:
           res.headers,
       },
@@ -705,29 +597,86 @@ async function handleAnthropicMessages(
 
   /*
    * --------------------------------------------------------------------------
-   * RESPONSES API
+   * OpenAI-compatible models
    * --------------------------------------------------------------------------
-   *
-   * Currently intentionally disabled.
    */
 
   if (
-    protocol === 'responses'
+    modelRoute.protocol ===
+    'openai'
   ) {
-    return new Response(
-      JSON.stringify({
-        type: 'error',
-        error: {
-          type: 'ModelError',
-          message:
-            `Model ${requestedModel} uses the OpenAI Responses API and is not yet enabled by this compatibility layer.`,
-          model:
-            requestedModel,
-          requestHasImages,
+    const openaiRequest =
+      formatAnthropicToOpenAI(
+        body,
+      );
+
+    /*
+     * Preserve the real OpenCode model.
+     */
+    openaiRequest.model =
+      modelRoute.upstreamModel;
+
+    const upstream =
+      getUpstreamBase(
+        modelRoute.source,
+      );
+
+    const res =
+      await fetch(
+        `${upstream}/chat/completions`,
+        {
+          method: 'POST',
+          headers:
+            openAIHeaders(key),
+          body:
+            JSON.stringify(
+              openaiRequest,
+            ),
         },
-      }),
+      );
+
+    if (!res.ok) {
+      return upstreamErrorResponse(
+        res,
+        await res.text(),
+      );
+    }
+
+    /*
+     * Claude Desktop expects its selected model ID back.
+     */
+    if (
+      openaiRequest.stream
+    ) {
+      return new Response(
+        streamOpenAIToAnthropic(
+          res.body as ReadableStream,
+          requestedModel,
+        ),
+        {
+          headers: {
+            'Content-Type':
+              'text/event-stream',
+            'Cache-Control':
+              'no-cache',
+            Connection:
+              'keep-alive',
+          },
+        },
+      );
+    }
+
+    const data =
+      await res.json();
+
+    return new Response(
+      JSON.stringify(
+        toAnthropicResponse(
+          data,
+          requestedModel,
+        ),
+      ),
       {
-        status: 501,
         headers: {
           'Content-Type':
             'application/json',
@@ -736,17 +685,20 @@ async function handleAnthropicMessages(
     );
   }
 
+  /*
+   * Responses is deliberately not silently converted.
+   */
   return new Response(
     JSON.stringify({
       type: 'error',
       error: {
         type: 'ModelError',
         message:
-          `Unsupported upstream protocol for model ${requestedModel}.`,
+          `Model ${requestedModel} uses the Responses API, which is not yet supported by this bridge.`,
       },
     }),
     {
-      status: 400,
+      status: 501,
       headers: {
         'Content-Type':
           'application/json',
@@ -759,19 +711,31 @@ async function handleAnthropicMessages(
  * ============================================================================
  * MODEL DISCOVERY
  * ============================================================================
- *
- * Claude Desktop uses /v1/models while validating the gateway.
- *
- * We fetch OpenCode's real catalog, then translate it into the model IDs
- * Claude expects.
  */
 
-async function fetchGoModels(
+function openCodeApiModel(
+  model: any,
+): string {
+  return typeof model?.id === 'string'
+    ? model.id.replace(
+        /^opencode-go\//,
+        '',
+      )
+    : '';
+}
+
+async function fetchCatalog(
+  source: UpstreamSource,
   key: string,
-): Promise<Response> {
+): Promise<any[]> {
+  const upstream =
+    getUpstreamBase(
+      source,
+    );
+
   const res =
     await fetch(
-      `${GO_UPSTREAM}/models`,
+      `${upstream}/models`,
       {
         method: 'GET',
         headers: {
@@ -782,164 +746,219 @@ async function fetchGoModels(
     );
 
   if (!res.ok) {
-    return upstreamErrorResponse(
-      res,
-      await res.text(),
-    );
+    return [];
   }
 
-  const body: any =
+  const body =
     await res.json();
 
-  const upstreamModels =
-    Array.isArray(
-      body?.data,
-    )
-      ? body.data
-      : [];
+  return Array.isArray(
+    body?.data,
+  )
+    ? body.data
+    : [];
+}
 
-  const models: ModelInfo[] =
-    [];
+function routeExistsInCatalog(
+  modelId: string,
+  sourceModels: any[],
+): boolean {
+  return sourceModels.some(
+    model =>
+      openCodeApiModel(model) ===
+      modelId,
+  );
+}
 
-  /*
-   * Build Claude-facing models from our explicit route table.
-   *
-   * This prevents OpenCode's internal model IDs from leaking into Claude.
-   */
+async function fetchGoAndZenModels(
+  key: string,
+): Promise<Response> {
+  const [
+    goModels,
+    zenModels,
+  ] = await Promise.all([
+    fetchCatalog(
+      'go',
+      key,
+    ),
+    fetchCatalog(
+      'zen',
+      key,
+    ),
+  ]);
+
+  const result: any[] = [];
+
   for (
     const [
-      claudeModelId,
+      id,
       route,
     ] of Object.entries(
       MODEL_ROUTES,
     )
   ) {
-    /*
-     * Don't advertise Responses models until supported.
-     */
+    const sourceModels =
+      route.source === 'go'
+        ? goModels
+        : zenModels;
+
     if (
-      route.protocol ===
-      'responses'
+      !routeExistsInCatalog(
+        route.upstreamModel,
+        sourceModels,
+      )
     ) {
       continue;
     }
 
-    /*
-     * Only expose a model if OpenCode actually reports it.
-     *
-     * The exception is claude-sonnet-4-5 below, because it is our
-     * compatibility alias for glm-5.2.
-     */
-    const upstreamModel =
-      upstreamModels.find(
-        (model: any) => {
-          const id =
-            typeof model?.id ===
-            'string'
-              ? model.id.replace(
-                  /^opencode-go\//,
-                  '',
-                )
-              : '';
-
-          return (
-            id ===
-            route.upstreamModel
-          );
-        },
-      );
-
-    if (
-      !upstreamModel &&
-      claudeModelId !==
-        'claude-sonnet-4-5'
-    ) {
-      continue;
-    }
-
-    models.push({
-      ...(upstreamModel || {}),
-
-      id:
-        claudeModelId,
-
-      object:
-        'model',
-
+    result.push({
+      id,
+      object: 'model',
       created:
-        upstreamModel?.created ||
         Math.floor(
           Date.now() / 1000,
         ),
-
       owned_by:
         'anthropic',
-
-      openCodeModel:
-        route.upstreamModel,
-
       display_name:
-        claudeModelId ===
-        'claude-sonnet-4-5'
-          ? 'Claude Sonnet 4.5 (OpenCode)'
-          : `OpenCode — ${route.upstreamModel}`,
-
+        modelDisplayName(
+          route.upstreamModel,
+        ),
       provider:
-        'opencode-go',
+        route.source === 'go'
+          ? 'opencode-go'
+          : 'opencode-zen',
+      upstream_model:
+        route.upstreamModel,
+      reasoning_efforts:
+        route.reasoningEfforts ||
+        [],
     });
   }
 
   /*
-   * Ensure Claude's gateway probe model ALWAYS exists.
+   * Keep the gateway probe model.
    *
-   * Claude probes this exact ID during Setup.
+   * This maps to GLM 5.2 only for authentication / initial probing.
    */
-  if (
-    !models.some(
-      model =>
-        model.id ===
-        'claude-sonnet-4-5',
-    )
-  ) {
-    models.unshift({
-      id:
-        'claude-sonnet-4-5',
-
-      object:
-        'model',
-
-      created:
-        Math.floor(
-          Date.now() / 1000,
-        ),
-
-      owned_by:
-        'anthropic',
-
-      openCodeModel:
-        'glm-5.2',
-
-      display_name:
-        'Claude Sonnet 4.5 (OpenCode)',
-
-      provider:
-        'opencode-go',
-    });
-  }
+  result.unshift({
+    id:
+      'claude-sonnet-4-5',
+    object: 'model',
+    created:
+      Math.floor(
+        Date.now() / 1000,
+      ),
+    owned_by:
+      'anthropic',
+    display_name:
+      'GLM 5.2',
+    provider:
+      'opencode-go',
+    upstream_model:
+      'glm-5.2',
+    reasoning_efforts: [
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+      'max',
+    ],
+  });
 
   return new Response(
     JSON.stringify({
       object: 'list',
-      data: models,
+      data: dedupeModels(
+        result,
+      ),
     }),
     {
-      status:
-        res.status,
-
       headers: {
         'Content-Type':
           'application/json',
       },
+    },
+  );
+}
+
+function modelDisplayName(
+  modelId: string,
+): string {
+  const names: Record<
+    string,
+    string
+  > = {
+    'glm-5.2': 'GLM 5.2',
+    'glm-5.1': 'GLM 5.1',
+    'glm-5': 'GLM 5',
+    'grok-4.5': 'Grok 4.5',
+    'grok-build-0.1':
+      'Grok Build 0.1',
+    'kimi-k3': 'Kimi K3',
+    'kimi-k2.7-code':
+      'Kimi K2.7 Code',
+    'kimi-k2.6':
+      'Kimi K2.6',
+    'kimi-k2.5':
+      'Kimi K2.5',
+    'deepseek-v4-pro':
+      'DeepSeek V4 Pro',
+    'deepseek-v4-flash':
+      'DeepSeek V4 Flash',
+    'deepseek-v4-flash-free':
+      'DeepSeek V4 Flash Free',
+    'mimo-v2.5-pro':
+      'MiMo V2.5 Pro',
+    'mimo-v2.5':
+      'MiMo V2.5',
+    'mimo-v2.5-free':
+      'MiMo V2.5 Free',
+    'minimax-m3':
+      'MiniMax M3',
+    'minimax-m2.7':
+      'MiniMax M2.7',
+    'minimax-m2.5':
+      'MiniMax M2.5',
+    'qwen3.8-max':
+      'Qwen 3.8 Max',
+    'qwen3.7-max':
+      'Qwen 3.7 Max',
+    'qwen3.7-plus':
+      'Qwen 3.7 Plus',
+    'qwen3.6-plus':
+      'Qwen 3.6 Plus',
+    'hy3': 'Hy3',
+    'big-pickle':
+      'Big Pickle',
+    'claude-sonnet-4-5':
+      'Claude Sonnet 4.5',
+    'claude-haiku-4-5':
+      'Claude Haiku 4.5',
+  };
+
+  return (
+    names[modelId] ||
+    modelId
+  );
+}
+
+function dedupeModels(
+  models: any[],
+): any[] {
+  const seen =
+    new Set<string>();
+
+  return models.filter(
+    model => {
+      if (
+        seen.has(model.id)
+      ) {
+        return false;
+      }
+
+      seen.add(model.id);
+      return true;
     },
   );
 }
@@ -956,33 +975,19 @@ async function handleRequest(
   const route =
     routeConfig(request);
 
-  const upstream =
-    getUpstream(
-      request,
-      route.upstream,
+  const key =
+    extractApiKey(
+      request.headers,
     );
 
-  const fmt =
-    upstreamFormat(request);
-
   /*
-   * --------------------------------------------------------------------------
-   * ANTHROPIC -> UPSTREAM
-   * --------------------------------------------------------------------------
-   *
-   * Claude Desktop/Cowork uses this endpoint.
+   * Anthropic Messages
    */
-
   if (
     route.path ===
       '/v1/messages' &&
     request.method === 'POST'
   ) {
-    const key =
-      extractApiKey(
-        request.headers,
-      );
-
     const err =
       validateApiKey(key);
 
@@ -993,151 +998,36 @@ async function handleRequest(
     }
 
     /*
-     * OpenCode Go is our normal gateway route.
-     *
-     * Route individual models based on MODEL_ROUTES.
+     * Explicit route URL override still works.
      */
     if (
-      fmt === 'openai' &&
-      upstream === GO_UPSTREAM
+      route.modelOverride
     ) {
       return handleAnthropicMessages(
         request,
         route,
-        upstream,
         key!,
       );
     }
 
     /*
-     * Explicit Anthropic upstream.
+     * Normal root gateway.
      */
-    if (
-      fmt === 'anthropic'
-    ) {
-      const body =
-        await request.text();
-
-      const res =
-        await fetch(
-          `${upstream}/messages`,
-          {
-            method: 'POST',
-            headers:
-              anthropicHeaders(
-                request,
-                key!,
-              ),
-            body,
-          },
-        );
-
-      return res;
-    }
-
-    /*
-     * Generic OpenAI-compatible upstream.
-     */
-
-    const req =
-      await request.json();
-
-    const originalModel =
-      req.model;
-
-    if (
-      route.modelOverride
-    ) {
-      req.model =
-        route.modelOverride;
-    }
-
-    const openaiReq =
-      formatAnthropicToOpenAI(
-        req,
-      );
-
-    const res =
-      await fetch(
-        `${upstream}/chat/completions`,
-        {
-          method: 'POST',
-          headers:
-            openAIHeaders(
-              key!,
-            ),
-          body:
-            JSON.stringify(
-              openaiReq,
-            ),
-        },
-      );
-
-    if (!res.ok) {
-      return upstreamErrorResponse(
-        res,
-        await res.text(),
-      );
-    }
-
-    if (
-      openaiReq.stream
-    ) {
-      return new Response(
-        streamOpenAIToAnthropic(
-          res.body as ReadableStream,
-          originalModel,
-        ),
-        {
-          headers: {
-            'Content-Type':
-              'text/event-stream',
-
-            'Cache-Control':
-              'no-cache',
-
-            Connection:
-              'keep-alive',
-          },
-        },
-      );
-    }
-
-    const data: any =
-      await res.json();
-
-    return new Response(
-      JSON.stringify(
-        toAnthropicResponse(
-          data,
-          originalModel,
-        ),
-      ),
-      {
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-      },
+    return handleAnthropicMessages(
+      request,
+      route,
+      key!,
     );
   }
 
   /*
-   * --------------------------------------------------------------------------
-   * OPENAI -> ANTHROPIC
-   * --------------------------------------------------------------------------
+   * OpenAI -> Anthropic compatibility.
    */
-
   if (
     route.path ===
       '/v1/chat/completions' &&
     request.method === 'POST'
   ) {
-    const key =
-      extractApiKey(
-        request.headers,
-      );
-
     const err =
       validateApiKey(key);
 
@@ -1146,6 +1036,11 @@ async function handleRequest(
         err,
       );
     }
+
+    const fmt =
+      upstreamFormat(
+        request,
+      );
 
     if (
       fmt === 'anthropic'
@@ -1156,6 +1051,12 @@ async function handleRequest(
       const anthReq =
         formatOpenAIToAnthropic(
           req,
+        );
+
+      const upstream =
+        getUpstream(
+          request,
+          ZEN_UPSTREAM,
         );
 
       const res =
@@ -1194,10 +1095,8 @@ async function handleRequest(
             headers: {
               'Content-Type':
                 'text/event-stream',
-
               'Cache-Control':
                 'no-cache',
-
               Connection:
                 'keep-alive',
             },
@@ -1205,7 +1104,7 @@ async function handleRequest(
         );
       }
 
-      const data: any =
+      const data =
         await res.json();
 
       return new Response(
@@ -1226,7 +1125,7 @@ async function handleRequest(
 
     const res =
       await fetch(
-        `${upstream}/chat/completions`,
+        `${DEFAULT_UPSTREAM}/chat/completions`,
         {
           method: 'POST',
           headers:
@@ -1242,21 +1141,13 @@ async function handleRequest(
   }
 
   /*
-   * --------------------------------------------------------------------------
-   * MODEL DISCOVERY
-   * --------------------------------------------------------------------------
+   * Model discovery.
    */
-
   if (
     route.path ===
       '/v1/models' &&
     request.method === 'GET'
   ) {
-    const key =
-      extractApiKey(
-        request.headers,
-      );
-
     const err =
       validateApiKey(key);
 
@@ -1266,78 +1157,36 @@ async function handleRequest(
       );
     }
 
-    /*
-     * OpenCode Go model discovery.
-     */
-    if (
-      upstream === GO_UPSTREAM
-    ) {
-      return fetchGoModels(
-        key!,
-      );
-    }
+    return fetchGoAndZenModels(
+      key!,
+    );
+  }
 
-    /*
-     * Generic Anthropic upstream.
-     */
-    if (
-      fmt === 'anthropic'
-    ) {
-      const res =
-        await fetch(
-          `${upstream}/models`,
-          {
-            method: 'GET',
-            headers:
-              anthropicHeaders(
-                request,
-                key!,
-              ),
-          },
-        );
-
-      if (!res.ok) {
-        return upstreamErrorResponse(
-          res,
-          await res.text(),
-        );
-      }
-
-      return new Response(
-        await res.text(),
-        {
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-        },
-      );
-    }
-
-    /*
-     * Generic OpenAI upstream.
-     */
-    const res =
-      await fetch(
-        `${upstream}/models`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization:
-              `Bearer ${key}`,
-          },
-        },
-      );
-
-    if (!res.ok) {
-      return upstreamErrorResponse(
-        res,
-        await res.text(),
-      );
-    }
-
+  /*
+   * Health endpoint.
+   */
+  if (
+    route.path === '/'
+  ) {
     return new Response(
-      await res.text(),
+      JSON.stringify(
+        {
+          name:
+            'opencode-cowork-proxy',
+          status:
+            'ok',
+          models:
+            Object.keys(
+              MODEL_ROUTES,
+            ).length,
+          sources: [
+            'opencode-go',
+            'opencode-zen',
+          ],
+        },
+        null,
+        2,
+      ),
       {
         headers: {
           'Content-Type':
@@ -1347,96 +1196,20 @@ async function handleRequest(
     );
   }
 
-  /*
-   * --------------------------------------------------------------------------
-   * HEALTH / ROOT
-   * --------------------------------------------------------------------------
-   */
-
   return new Response(
-    JSON.stringify(
-      {
-        name:
-          'opencode-cowork-proxy',
-
-        upstream,
-
-        routes: {
-          '/go':
-            GO_UPSTREAM,
-
-          '/zen':
-            ZEN_UPSTREAM,
-        },
-
-        endpoints: {
-          '/v1/messages':
-            'Anthropic Messages → OpenCode model routing',
-
-          '/v1/chat/completions':
-            'OpenAI Chat Completions compatibility',
-
-          '/v1/models':
-            'Claude-compatible OpenCode model discovery',
-        },
-
-        capabilities: {
-          modelDiscovery:
-            true,
-
-          tools:
-            true,
-
-          images:
-            true,
-
-          streaming:
-            true,
-
-          reasoningPassthrough:
-            true,
-        },
-
-        modelRouting:
-          Object.fromEntries(
-            Object.entries(
-              MODEL_ROUTES,
-            ).map(
-              ([
-                id,
-                route,
-              ]) => [
-                id,
-                route.upstreamModel,
-              ],
-            ),
-          ),
-
-        note:
-          'Claude-facing model IDs are mapped internally to OpenCode models. GPT-5.6 Luna is not advertised until a Responses API adapter is implemented.',
-      },
-      null,
-      2,
-    ),
+    JSON.stringify({
+      error:
+        'Not found',
+    }),
     {
+      status: 404,
       headers: {
         'Content-Type':
           'application/json',
       },
-
-      status:
-        route.path === '/'
-          ? 200
-          : 404,
     },
   );
 }
-
-/*
- * ============================================================================
- * HONO
- * ============================================================================
- */
 
 const app =
   new Hono();

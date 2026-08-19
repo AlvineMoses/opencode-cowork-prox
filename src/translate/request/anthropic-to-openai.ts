@@ -1,22 +1,29 @@
 import { hashSystemPrompt } from '../../cache';
 
-function translateImageBlock(part: any): any {
-  const src = part.source;
+function translateImageBlock(
+  part: any,
+): any {
+  const src = part?.source;
 
-  if (!src) return null;
+  if (!src) {
+    return null;
+  }
 
-  if (src.type === "url") {
+  if (src.type === 'url') {
     return {
-      type: "image_url",
-      image_url: { url: src.url },
+      type: 'image_url',
+      image_url: {
+        url: src.url,
+      },
     };
   }
 
-  if (src.type === "base64") {
+  if (src.type === 'base64') {
     return {
-      type: "image_url",
+      type: 'image_url',
       image_url: {
-        url: `data:${src.media_type};base64,${src.data}`,
+        url:
+          `data:${src.media_type};base64,${src.data}`,
       },
     };
   }
@@ -24,25 +31,110 @@ function translateImageBlock(part: any): any {
   return null;
 }
 
-function extractThinking(body: any): any {
-  const thinking = body?.thinking;
+function extractReasoningEffort(
+  body: any,
+): string | null {
+  /*
+   * OpenCode uses reasoningEffort / reasoning_effort.
+   *
+   * Claude Desktop's third-party gateway versions may express the
+   * selected effort in different forms, so accept all common forms.
+   */
 
-  if (!thinking || thinking.type !== "enabled") {
+  const direct =
+    body?.reasoning_effort ??
+    body?.reasoningEffort;
+
+  if (
+    typeof direct === 'string' &&
+    direct.trim()
+  ) {
+    return direct.trim().toLowerCase();
+  }
+
+  /*
+   * Some Anthropic-compatible clients expose the selected thinking
+   * budget rather than a named effort.
+   */
+  const thinking =
+    body?.thinking;
+
+  if (
+    thinking &&
+    thinking.type === 'enabled'
+  ) {
+    const budget =
+      thinking.budget_tokens;
+
+    if (
+      typeof budget === 'number'
+    ) {
+      /*
+       * Map Anthropic-style budgets to the OpenCode effort scale.
+       */
+      if (budget <= 4096) {
+        return 'low';
+      }
+
+      if (budget <= 8192) {
+        return 'medium';
+      }
+
+      if (budget <= 16384) {
+        return 'high';
+      }
+
+      if (budget <= 32768) {
+        return 'xhigh';
+      }
+
+      return 'max';
+    }
+
+    return 'high';
+  }
+
+  return null;
+}
+
+function normalizeEffort(
+  effort: string | null,
+): string | null {
+  if (!effort) {
     return null;
   }
 
-  const budget =
-    typeof thinking.budget_tokens === "number"
-      ? thinking.budget_tokens
-      : undefined;
+  const value =
+    effort.toLowerCase();
 
-  return {
-    enabled: true,
-    budget_tokens: budget,
-  };
+  switch (value) {
+    case 'low':
+      return 'low';
+
+    case 'medium':
+      return 'medium';
+
+    case 'high':
+      return 'high';
+
+    case 'extra high':
+    case 'extra-high':
+    case 'extra_high':
+    case 'xhigh':
+      return 'xhigh';
+
+    case 'max':
+    case 'ultracode':
+      return 'max';
+
+    default:
+      return value;
+  }
 }
 
-export function formatAnthropicToOpenAI(body: any): any {
+export function formatAnthropicToOpenAI(
+  body: any,
+): any {
   const {
     model,
     messages,
@@ -55,219 +147,404 @@ export function formatAnthropicToOpenAI(body: any): any {
     stream,
   } = body;
 
-  const openAIMessages = Array.isArray(messages)
-    ? messages.flatMap((msg: any) => {
-        if (typeof msg.content === "string") {
-          return [{ role: msg.role, content: msg.content }];
-        }
-
-        if (!Array.isArray(msg.content)) return [];
-
-        const result: any[] = [];
-
-        if (msg.role === "assistant") {
-          const assistantMsg: any = {
-            role: "assistant",
-            content: null,
-          };
-
-          let text = "";
-          let reasoningContent = "";
-          const toolCalls: any[] = [];
-
-          msg.content.forEach((part: any) => {
-            if (part.type === "text") {
-              text +=
-                (typeof part.text === "string"
-                  ? part.text
-                  : JSON.stringify(part.text)) + "\n";
-            } else if (part.type === "thinking") {
-              reasoningContent +=
-                (typeof part.thinking === "string"
-                  ? part.thinking
-                  : JSON.stringify(part.thinking)) + "\n";
-            } else if (part.type === "tool_use") {
-              toolCalls.push({
-                id: part.id,
-                type: "function",
-                function: {
-                  name: part.name,
-                  arguments: JSON.stringify(part.input),
+  const openAIMessages =
+    Array.isArray(messages)
+      ? messages.flatMap(
+          (msg: any) => {
+            if (
+              typeof msg.content ===
+              'string'
+            ) {
+              return [
+                {
+                  role:
+                    msg.role,
+                  content:
+                    msg.content,
                 },
-              });
+              ];
             }
-          });
 
-          const trimmed = text.trim();
-          const trimmedReasoning = reasoningContent.trim();
+            if (
+              !Array.isArray(
+                msg.content,
+              )
+            ) {
+              return [];
+            }
 
-          if (trimmed) {
-            assistantMsg.content = trimmed;
-          }
+            const result: any[] =
+              [];
 
-          if (trimmedReasoning) {
-            assistantMsg.reasoning_content = trimmedReasoning;
-          }
+            if (
+              msg.role ===
+              'assistant'
+            ) {
+              const assistantMsg: any =
+                {
+                  role:
+                    'assistant',
+                  content:
+                    null,
+                };
 
-          if (toolCalls.length > 0) {
-            assistantMsg.tool_calls = toolCalls;
-          }
+              let text = '';
+              let reasoningContent =
+                '';
 
-          if (
-            assistantMsg.content ||
-            assistantMsg.reasoning_content ||
-            assistantMsg.tool_calls
-          ) {
-            result.push(assistantMsg);
-          }
-        }
+              const toolCalls: any[] =
+                [];
 
-        if (msg.role === "user") {
-          let userText = "";
-          const contentParts: any[] = [];
-          const toolResults: any[] = [];
+              msg.content.forEach(
+                (part: any) => {
+                  if (
+                    part.type ===
+                    'text'
+                  ) {
+                    text +=
+                      (typeof part.text ===
+                      'string'
+                        ? part.text
+                        : JSON.stringify(
+                            part.text,
+                          )) +
+                      '\n';
+                  } else if (
+                    part.type ===
+                    'thinking'
+                  ) {
+                    reasoningContent +=
+                      (typeof part.thinking ===
+                      'string'
+                        ? part.thinking
+                        : JSON.stringify(
+                            part.thinking,
+                          )) +
+                      '\n';
+                  } else if (
+                    part.type ===
+                    'tool_use'
+                  ) {
+                    toolCalls.push({
+                      id: part.id,
+                      type:
+                        'function',
+                      function: {
+                        name:
+                          part.name,
+                        arguments:
+                          JSON.stringify(
+                            part.input,
+                          ),
+                      },
+                    });
+                  }
+                },
+              );
 
-          msg.content.forEach((part: any) => {
-            if (part.type === "text") {
-              userText +=
-                (typeof part.text === "string"
-                  ? part.text
-                  : JSON.stringify(part.text)) + "\n";
-            } else if (part.type === "image") {
-              const translated = translateImageBlock(part);
+              const trimmed =
+                text.trim();
 
-              if (translated) {
-                contentParts.push(translated);
+              const trimmedReasoning =
+                reasoningContent.trim();
+
+              if (trimmed) {
+                assistantMsg.content =
+                  trimmed;
               }
-            } else if (part.type === "tool_result") {
-              toolResults.push({
-                role: "tool",
-                tool_call_id: part.tool_use_id,
-                content:
-                  typeof part.content === "string"
-                    ? part.content
-                    : JSON.stringify(part.content),
-              });
+
+              if (
+                trimmedReasoning
+              ) {
+                assistantMsg.reasoning_content =
+                  trimmedReasoning;
+              }
+
+              if (
+                toolCalls.length >
+                0
+              ) {
+                assistantMsg.tool_calls =
+                  toolCalls;
+              }
+
+              if (
+                assistantMsg.content ||
+                assistantMsg.reasoning_content ||
+                assistantMsg.tool_calls
+              ) {
+                result.push(
+                  assistantMsg,
+                );
+              }
             }
-          });
 
-          const trimmed = userText.trim();
+            if (
+              msg.role ===
+              'user'
+            ) {
+              let userText =
+                '';
 
-          result.push(...toolResults);
+              const contentParts: any[] =
+                [];
 
-          if (contentParts.length > 0) {
-            if (trimmed) {
-              contentParts.unshift({
-                type: "text",
-                text: trimmed,
-              });
+              const toolResults: any[] =
+                [];
+
+              msg.content.forEach(
+                (part: any) => {
+                  if (
+                    part.type ===
+                    'text'
+                  ) {
+                    userText +=
+                      (typeof part.text ===
+                      'string'
+                        ? part.text
+                        : JSON.stringify(
+                            part.text,
+                          )) +
+                      '\n';
+                  } else if (
+                    part.type ===
+                    'image'
+                  ) {
+                    const translated =
+                      translateImageBlock(
+                        part,
+                      );
+
+                    if (
+                      translated
+                    ) {
+                      contentParts.push(
+                        translated,
+                      );
+                    }
+                  } else if (
+                    part.type ===
+                    'tool_result'
+                  ) {
+                    toolResults.push({
+                      role:
+                        'tool',
+
+                      tool_call_id:
+                        part.tool_use_id,
+
+                      content:
+                        typeof part.content ===
+                        'string'
+                          ? part.content
+                          : JSON.stringify(
+                              part.content,
+                            ),
+                    });
+                  }
+                },
+              );
+
+              const trimmed =
+                userText.trim();
+
+              result.push(
+                ...toolResults,
+              );
+
+              if (
+                contentParts.length >
+                0
+              ) {
+                if (trimmed) {
+                  contentParts.unshift({
+                    type:
+                      'text',
+                    text:
+                      trimmed,
+                  });
+                }
+
+                result.push({
+                  role:
+                    'user',
+                  content:
+                    contentParts,
+                });
+              } else if (
+                trimmed
+              ) {
+                result.push({
+                  role:
+                    'user',
+                  content:
+                    trimmed,
+                });
+              }
             }
 
-            result.push({
-              role: "user",
-              content: contentParts,
-            });
-          } else if (trimmed) {
-            result.push({
-              role: "user",
-              content: trimmed,
-            });
-          }
-        }
-
-        return result;
-      })
-    : [];
-
-  const systemMessages = Array.isArray(system)
-    ? system.map((item: any) => ({
-        role: "system",
-        content: item.text,
-      }))
-    : system
-      ? [{ role: "system", content: system }]
+            return result;
+          },
+        )
       : [];
+
+  const systemMessages =
+    Array.isArray(system)
+      ? system.map(
+          (item: any) => ({
+            role: 'system',
+            content:
+              item.text,
+          }),
+        )
+      : system
+        ? [
+            {
+              role: 'system',
+              content:
+                system,
+            },
+          ]
+        : [];
 
   const data: any = {
     model,
-    messages: [...systemMessages, ...openAIMessages],
+
+    messages: [
+      ...systemMessages,
+      ...openAIMessages,
+    ],
   };
 
-  if (max_tokens !== undefined) {
-    data.max_tokens = max_tokens;
+  if (
+    max_tokens !==
+    undefined
+  ) {
+    data.max_tokens =
+      max_tokens;
   }
 
-  if (temperature !== undefined) {
-    data.temperature = temperature;
+  if (
+    temperature !==
+    undefined
+  ) {
+    data.temperature =
+      temperature;
   }
 
-  if (top_p !== undefined) {
+  if (
+    top_p !== undefined
+  ) {
     data.top_p = top_p;
   }
 
-  if (stream !== undefined) {
-    data.stream = stream;
+  if (
+    stream !== undefined
+  ) {
+    data.stream =
+      stream;
   }
 
   if (stream) {
     data.stream_options = {
-      include_usage: true,
+      include_usage:
+        true,
     };
   }
 
-  if (stop_sequences) {
-    data.stop = stop_sequences;
+  if (
+    stop_sequences
+  ) {
+    data.stop =
+      stop_sequences;
   }
 
   if (tools) {
-    data.tools = tools.map((item: any) => ({
-      type: "function",
-      function: {
-        name: item.name,
-        description: item.description,
-        parameters: item.input_schema,
-      },
-    }));
+    data.tools =
+      tools.map(
+        (item: any) => ({
+          type:
+            'function',
+
+          function: {
+            name:
+              item.name,
+
+            description:
+              item.description,
+
+            parameters:
+              item.input_schema,
+          },
+        }),
+      );
   }
 
   /*
-   * Claude Desktop sends:
+   * ============================================================
+   * REASONING
+   * ============================================================
    *
-   * {
-   *   "thinking": {
-   *     "type": "enabled",
-   *     "budget_tokens":  ...
-   *   }
-   * }
+   * Claude Desktop selects:
    *
-   * Preserve the requested reasoning budget for OpenCode-compatible
-   * providers. Different OpenCode models may interpret this differently,
-   * so we keep the original budget rather than inventing a model-specific
-   * scale here.
+   * Low
+   * Medium
+   * High
+   * Extra High
+   * Max
+   *
+   * We normalize those to OpenCode:
+   *
+   * low
+   * medium
+   * high
+   * xhigh
+   * max
    */
-  const thinking = extractThinking(body);
+  const reasoningEffort =
+    normalizeEffort(
+      extractReasoningEffort(
+        body,
+      ),
+    );
 
-  if (thinking) {
+  if (
+    reasoningEffort
+  ) {
     data.reasoning_effort =
-      thinking.budget_tokens !== undefined
-        ? thinking.budget_tokens
-        : "high";
+      reasoningEffort;
 
     /*
-     * Some OpenAI-compatible gateways/models understand this form.
-     * Keep the original information available for upstream adapters.
+     * Keep OpenCode's newer camelCase form available to providers
+     * that use it.
      */
+    data.reasoningEffort =
+      reasoningEffort;
+  }
+
+  /*
+   * Some OpenCode-compatible providers inspect this field.
+   */
+  if (
+    reasoningEffort
+  ) {
     data.reasoning = {
-      enabled: true,
-      budget_tokens: thinking.budget_tokens,
+      effort:
+        reasoningEffort,
     };
   }
 
-  // Inject prompt_cache_key from system prompt hash for OpenAI node affinity caching.
-  const cacheKey = hashSystemPrompt(system);
+  /*
+   * Prefix cache affinity.
+   */
+  const cacheKey =
+    hashSystemPrompt(
+      system,
+    );
 
   if (cacheKey) {
-    data.prompt_cache_key = cacheKey;
+    data.prompt_cache_key =
+      cacheKey;
   }
 
   return data;
