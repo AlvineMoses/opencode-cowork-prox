@@ -9,7 +9,7 @@ import { formatAnthropicToOpenAI } from './translate/request/anthropic-to-openai
 import { formatOpenAIToAnthropic } from './translate/request/openai-to-anthropic';
 
 import { formatOpenAIToAnthropic as toAnthropicResponse } from './translate/response/openai-to-anthropic';
-import { formatOpenAIToAnthropic as toOpenAIResponse } from './translate/response/anthropic-to-openai';
+import { formatAnthropicToOpenAI as toOpenAIResponse } from './translate/response/anthropic-to-openai';
 
 import { streamOpenAIToAnthropic } from './translate/stream/openai-to-anthropic';
 import { streamAnthropicToOpenAI } from './translate/stream/anthropic-to-openai';
